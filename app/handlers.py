@@ -96,7 +96,7 @@ async def get_max(message: types.Message, state: FSMContext):
     data = await state.get_data()
     await message.answer(f'Диапазон чисел: [{data["min"]} .. {data["max"]}]')
     
-    if data["max"] < data["min"]:
+    if data["max"] <= data["min"]:
         await message.answer("Максимальное число должно быть больше минимального!")
         return
     
