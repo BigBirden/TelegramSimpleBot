@@ -1,4 +1,5 @@
 import random                                           # Для рандомизации
+from typing import Union                                # Для валидации
 
 # Загружаем данные из файлов
 def load_data(filename):
@@ -16,7 +17,11 @@ def load_jokes(filename):
             return [joke.strip() for joke in content.split('\n\n') if joke.strip()]
         
 # Функция рандомизации
-def randomizing(min: int, max: int):
+def randomizing(min: int, max: int) -> tuple[list[int], int]:
+    # Проверка на минимальный диапазон
+    if max - min + 1 < 2:
+        raise ValueError("Диапазон должен содержать как минимум 2 числа")
+    
     numbers = list(range(min, max + 1))                         # Список кандидатов из диапазона и массив для выбывших кандидатов
     eliminated = []
     
@@ -66,3 +71,11 @@ def randomizing(min: int, max: int):
         # Если после 50 чисел нет победителя, генерируем новую партию
     
     return eliminated, winner           # Возвращаем выбывших кандидатов и победителя
+
+# Валидация числа в рандомайзере
+def validate_number(input_str: str) -> int | None:
+    try:                                    
+        num = int(input_str)            # Проверяет, является ли строка положительным целым числом
+        return num if num >= 0 else None
+    except (ValueError, TypeError):
+        return None
