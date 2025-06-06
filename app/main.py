@@ -4,8 +4,9 @@ from aiogram import Bot, Dispatcher
 from dotenv import load_dotenv                  # Загружает переменные окружения (в данном случае токен бота)
 import os                                       # Позволяет работать с переменными окружения
 import asyncio                                  # Позволяет выполнять код асинхронно (параллельно)
+from sqlalchemy import create_engine            # Подключение к БД (пустой)
 
-from app.handlers import router
+from handlers import router
 
 async def set_commands(bot: Bot):
     commands = [
@@ -17,15 +18,23 @@ async def set_commands(bot: Bot):
 
 # Запуск бота
 async def main():
+    DATABASE_URL = "postgresql://postgres:postgres@db:5432/postgres"            # Подключение к PostgreSQL (URL из docker-compose)
+    engine = create_engine(DATABASE_URL)
+    
     load_dotenv()                       # Получает все переменные из файла .env
-    TOKEN = os.getenv("BOT_TOKEN")      # Получаем нужную переменную
+    """TOKEN = os.getenv("BOT_TOKEN")      # Получаем нужную переменную
     if TOKEN is None:       
         raise ValueError("Не найден BOT_TOKEN в переменных окружения или .env файле")       # Нужно, чтобы токен точно был строкой
+    """
 
     logging.basicConfig(level=logging.INFO)     # Настройка логов
+    logger = logging.getLogger(__name__)
     
+    with engine.connect() as conn:                                              # Просто проверяем подключение
+        logger.info("Бот подключился к PostgreSQL!")
+    logger.info("Запуск бота...")
     
-    bot = Bot(token=TOKEN)          # Создание самого бота
+    bot = Bot(token="7787739218:AAF5jmw1a2SC-2BbzZdJnsUwOqjlOYVFSrY")          # Создание самого бота
     dp = Dispatcher()               # Создание диспетчера обработки сообщений
     
     await set_commands(bot)  # Установка меню команд

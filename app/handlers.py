@@ -7,8 +7,8 @@ from aiogram.fsm.context import FSMContext
 import asyncio                                          # Позволяет выполнять код асинхронно (параллельно)
 
 
-from .func import load_data, load_jokes, randomizing       # Функции загрузки данных и рандомизации
-from . import keyboards as kb                              # Reply-Клавиатуры и Inline-клавиатуры
+from func import load_data, load_jokes, randomizing       # Функции загрузки данных и рандомизации
+import keyboards as kb                              # Reply-Клавиатуры и Inline-клавиатуры
 
 facts = load_data('data/facts.txt')                 # Загрузка данных
 thinks = load_data('data/thinks.txt')
