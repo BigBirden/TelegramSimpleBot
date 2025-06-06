@@ -10,7 +10,8 @@ from app.handlers import router
 async def set_commands(bot: Bot):
     commands = [
         BotCommand(command="start", description="Запустить бота"),
-        BotCommand(command="help", description="Помощь")
+        BotCommand(command="help", description="Помощь"),
+        BotCommand(command="pray", description="Молитва")
     ]
     await bot.set_my_commands(commands, scope=BotCommandScopeDefault())
 

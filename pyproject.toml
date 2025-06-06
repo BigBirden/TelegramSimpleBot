@@ -79,7 +79,8 @@ dependencies = [
     "trove-classifiers (==2025.5.9.12)",
     "urllib3 (==2.4.0)",
     "virtualenv (==20.31.2)",
-    "zstandard (==0.23.0)"
+    "zstandard (==0.23.0)",
+    "soupsieve (==2.7)"
 ]
 
 [tool.poetry.dependencies]
