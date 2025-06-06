@@ -1,13 +1,14 @@
 from aiogram import types, F, Router                    # Непосредственно создание ботов
 from aiogram.filters import Command, CommandStart       # Фильтр для обработки команд
-from aiogram.types import CallbackQuery
+from aiogram.types import CallbackQuery, FSInputFile
 import random                                           # Для поговорок и фактов
-from aiogram.fsm.state import State, StatesGroup
+from aiogram.fsm.state import State, StatesGroup        # Импорт состояний для рандомизатора
 from aiogram.fsm.context import FSMContext
 import asyncio                                          # Позволяет выполнять код асинхронно (параллельно)
 
-from .func import load_data, load_jokes, randomizing       # Функции загрузки данных и рандомизации
-from . import keyboards as kb                              # Reply-Клавиатуры и Inline-клавиатуры
+
+from func import load_data, load_jokes, randomizing       # Функции загрузки данных и рандомизации
+import keyboards as kb                              # Reply-Клавиатуры и Inline-клавиатуры
 
 facts = load_data('data/facts.txt')                 # Загрузка данных
 thinks = load_data('data/thinks.txt')
@@ -63,6 +64,7 @@ async def send_help(message: types.Message):
     Доступные команды:
     /start - Начать работу
     /help - Список команд
+    /pray - Помолиться за здравие
     
     Нажми кнопку:
         "Факт" — для получения интересного факта
@@ -71,8 +73,6 @@ async def send_help(message: types.Message):
         "Каталог" — выводит меню с дополнительными функциями
     """
     await message.answer(help_text)
-    
-# Секретные функции
     
 # Запуск рандомизации
 @router.callback_query(F.data == 'rand')
@@ -96,7 +96,7 @@ async def get_max(message: types.Message, state: FSMContext):
     data = await state.get_data()
     await message.answer(f'Диапазон чисел: [{data["min"]} .. {data["max"]}]')
     
-    if data["max"] < data["min"]:
+    if data["max"] <= data["min"]:
         await message.answer("Максимальное число должно быть больше минимального!")
         return
     
@@ -119,3 +119,60 @@ async def repeat_randomization(callback: CallbackQuery, state: FSMContext):
     await state.set_state(Randomizer.min)
     await callback.message.answer('Введите наименьшее число для диапазона') # type: ignore
     
+# Секретные функции
+# Сбэу комар, который ведет на бота моего одногруппника
+@router.message(lambda message: message.text.lower() in {'сбеу', 'сбэу', 'sbey', 'sbeu'})
+async def sbeu(message: types.Message):
+    photo_path = "picts/komar.jpg"
+    bot_username = "obdolbos_bot"
+    captionL = (
+        "Уже в пути к тебе\.\.\."
+        f"\n\n[Или иди навстречу\.](https://t.me/{bot_username})"
+    )
+    await message.answer_photo(FSInputFile(photo_path), 
+                               caption=captionL,
+                               parse_mode="MarkdownV2")
+    
+# Молитва
+@router.message(Command('pray'))
+async def pray(message: types.Message):
+    phrases = [                                                     # Список возможных фраз
+        "Господь услышал ваши молитвы.",
+        "Вы поставили свечку в церкви.",
+        "Священник в восторге."
+    ]
+    photos = [
+        "picts/church.jpg",
+        "picts/church1.jpg",
+        "picts/church2.jpg"
+    ]
+    random_phrase = random.choice(phrases)                      # Выбираем случайную фразу
+    random_number = random.randint(1, 100)                      # Генерируем случайное число от 1 до 100
+    photo_path = random.choice(photos)                          # Выбираем фото
+    captionL = (
+        f"{random_phrase}\n\n"
+        f"Ваш навык 'Религия' повышен на: {random_number}!"
+    )
+    await message.answer_photo(FSInputFile(photo_path), 
+                               caption=captionL)
+    
+# Игра в пинг-понг
+@router.message(F.text.lower().in_(["ping", "пинг"]))
+async def pong(message: types.Message):
+    await message.answer('pong')
+    
+# Рыбко
+@router.message(F.text.lower().in_(["fihs", "fish"]))
+async def fish(message: types.Message):
+    gif_path = "picts/fish.gif"
+    await message.answer_animation(FSInputFile(gif_path))
+    
+# Поддержка в тяжелой ситуации
+@router.message(F.text.contains("помогите"))
+async def luck(message: types.Message):
+    photo_path = "picts/cat.jpg"
+    captionL = (
+        "Все будет хорошо. Бог поможет..."
+    )
+    await message.answer_photo(FSInputFile(photo_path), 
+                               caption=captionL)
