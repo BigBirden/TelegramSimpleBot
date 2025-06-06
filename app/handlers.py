@@ -7,8 +7,8 @@ from aiogram.fsm.context import FSMContext
 import asyncio                                          # Позволяет выполнять код асинхронно (параллельно)
 
 
-from func import load_data, load_jokes, randomizing       # Функции загрузки данных и рандомизации
-import keyboards as kb                              # Reply-Клавиатуры и Inline-клавиатуры
+from func import load_data, load_jokes, randomizing, validate_number       # Функции загрузки данных и рандомизации
+import keyboards as kb                                                     # Reply-Клавиатуры и Inline-клавиатуры
 
 facts = load_data('data/facts.txt')                 # Загрузка данных
 thinks = load_data('data/thinks.txt')
@@ -85,32 +85,54 @@ async def randF(callback: CallbackQuery, state: FSMContext):
 # Обработчик состояния min
 @router.message(Randomizer.min)
 async def get_min(message: types.Message, state: FSMContext):
-    await state.update_data(min=message.text)
+    if message.text is None:
+        await message.answer("Пожалуйста, введите число, а не файл или стикер!")
+        return
+    
+    min_num = validate_number(message.text)
+    if min_num is None:
+        await message.answer("Пожалуйста, введите целое положительное число!")
+        return
+    
+    await state.update_data(min=min_num)
     await state.set_state(Randomizer.max)
     await message.answer('Введите наибольшее число для диапазона')
     
 # Обработчик состояния max
 @router.message(Randomizer.max)
 async def get_max(message: types.Message, state: FSMContext):
-    await state.update_data(max=message.text)
-    data = await state.get_data()
-    await message.answer(f'Диапазон чисел: [{data["min"]} .. {data["max"]}]')
+    if message.text is None:
+        await message.answer("Пожалуйста, введите число, а не файл или стикер!")
+        return
     
-    if data["max"] <= data["min"]:
+    max_num = validate_number(message.text)
+    if max_num is None:
+        await message.answer("Пожалуйста, введите целое положительное число!")
+        return
+    
+    data = await state.get_data()
+    min_num = data["min"]
+    
+    if max_num <= min_num:
         await message.answer("Максимальное число должно быть больше минимального!")
         return
     
-    # Получаем результаты рандомизации
-    eliminated, winner = randomizing(int(data["min"]), int(data["max"]))
-    # Выводим процесс выбывания чисел
-    for num in eliminated:
-        await message.answer(f"Выбыло число: {num}")
-        # Можно добавить небольшую паузу для эффекта
-        await asyncio.sleep(0.5)
+    try:
+        eliminated, winner = randomizing(min_num, max_num)
+        
+        await message.answer(f"Диапазон чисел: [{min_num}...{max_num}]")
+        for num in eliminated:
+            await message.answer(f"Выбыло число: {num}")
+            await asyncio.sleep(0.5)
+        
+        await message.answer(f"Победитель: {winner}", reply_markup=kb.again)
     
-    # Объявляем победителя
-    await message.answer(f"Победитель: {winner}", reply_markup=kb.again)
-    await state.clear()
+    except ValueError as e:
+        await message.answer(f"Ошибка: {str(e)}")
+    except Exception:
+        await message.answer("Произошла ошибка при рандомизации. Попробуйте задать другой диапазон.")
+    finally:
+        await state.clear()
     
 # Перезапуск рандомизации
 @router.callback_query(F.data == "repeat_random")
