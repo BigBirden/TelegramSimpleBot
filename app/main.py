@@ -12,6 +12,7 @@ async def set_commands(bot: Bot):
     commands = [
         BotCommand(command="start", description="Запустить бота"),
         BotCommand(command="help", description="Помощь"),
+        BotCommand(command="base", description="Проверка БД"),
         BotCommand(command="pray", description="Молитва")
     ]
     await bot.set_my_commands(commands, scope=BotCommandScopeDefault())
@@ -22,10 +23,9 @@ async def main():
     engine = create_engine(DATABASE_URL)
     
     load_dotenv()                       # Получает все переменные из файла .env
-    """TOKEN = os.getenv("BOT_TOKEN")      # Получаем нужную переменную
+    TOKEN = os.getenv("BOT_TOKEN")      # Получаем нужную переменную
     if TOKEN is None:       
         raise ValueError("Не найден BOT_TOKEN в переменных окружения или .env файле")       # Нужно, чтобы токен точно был строкой
-    """
 
     logging.basicConfig(level=logging.INFO)     # Настройка логов
     logger = logging.getLogger(__name__)
@@ -34,12 +34,18 @@ async def main():
         logger.info("Бот подключился к PostgreSQL!")
     logger.info("Запуск бота...")
     
-    bot = Bot(token="7787739218:AAF5jmw1a2SC-2BbzZdJnsUwOqjlOYVFSrY")          # Создание самого бота
+    bot = Bot(token=TOKEN)          # Создание самого бота
     dp = Dispatcher()               # Создание диспетчера обработки сообщений
+    
+    # Передаём engine в хендлеры (чтобы они создавали новые подключения при запросах)
+    dp["engine"] = engine
     
     await set_commands(bot)  # Установка меню команд
     dp.include_router(router)       # Включаем роутер
-    await dp.start_polling(bot)     # Бесконечно слушает сервера Телеграмма, чтобы отреагировать на сообщения
+    try:
+        await dp.start_polling(bot)     # Бесконечно слушает сервера Телеграмма, чтобы отреагировать на сообщения
+    finally:
+        engine.dispose()  # Закрываем все соединения при остановке бота
 
 
 if __name__ == '__main__':          # Запускается только в том случае, если данный файл запускаетс непосредственно

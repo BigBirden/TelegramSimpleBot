@@ -64,6 +64,7 @@ async def send_help(message: types.Message):
     Доступные команды:
     /start - Начать работу
     /help - Список команд
+    /base - Проверить подключение к базе данных
     /pray - Помолиться за здравие
     
     Нажми кнопку:
@@ -73,6 +74,19 @@ async def send_help(message: types.Message):
         "Каталог" — выводит меню с дополнительными функциями
     """
     await message.answer(help_text)
+
+# Обработчик команды /base
+@router.message(Command('base'))
+async def dbcheck(message: types.Message, engine):
+    try:
+        # Пробуем установить подключение
+        with engine.connect() as conn:
+            # Если подключение успешно, выполняем дальнейшие операции
+            await message.answer("Успешное подключение к базе данных")
+            
+    except Exception as e:
+        # Если возникла ошибка подключения
+        await message.answer(f"Ошибка подключения к базе данных: {str(e)}")
     
 # Запуск рандомизации
 @router.callback_query(F.data == 'rand')
