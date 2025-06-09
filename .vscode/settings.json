@@ -1,8 +1,0 @@
-{
-  "python.linting.enabled": true,
-  "python.linting.pylintEnabled": true,
-  "python.formatting.provider": "black",  // Автоформатирование
-  "editor.formatOnSave": true,
-  "python.analysis.typeCheckingMode": "basic",  // Проверка типов
-  "files.autoSave": "onFocusChange"
-}
