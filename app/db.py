@@ -1,13 +1,25 @@
-from sqlalchemy import create_engine
-from sqlalchemy.orm import scoped_session, sessionmaker
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
+from contextlib import asynccontextmanager
 
 engine = None
+AsyncSessionLocal = None
 
 def init_db(database_url):
-    global engine
-    engine = create_engine(database_url)
+    global engine, AsyncSessionLocal
+    engine = create_async_engine(database_url)
+    AsyncSessionLocal = async_sessionmaker(engine, expire_on_commit=False)
 
-def get_engine():
-    if engine is None:
-        raise RuntimeError("DB engine not initialized")
-    return engine
+@asynccontextmanager
+async def get_session():
+    if AsyncSessionLocal != None:
+        async with AsyncSessionLocal() as session:
+            try:
+                yield session                       # <-- Отдаём сессию в код
+                await session.commit()              # Если не было ошибок
+            except Exception:
+                await session.rollback()            # Откат при ошибке
+                raise
+            finally:
+                await session.close()               # Всегда закрываем
+    else:
+        raise Exception("AsyncSessionLocal is None")

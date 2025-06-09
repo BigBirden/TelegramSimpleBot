@@ -1,13 +1,15 @@
+import sys
 from aiogram.types import BotCommand, BotCommandScopeDefault
 from aiogram import Bot, Dispatcher
 from dotenv import load_dotenv                  # Загружает переменные окружения (в данном случае токен бота)
 import os                                       # Позволяет работать с переменными окружения
 import asyncio                                  # Позволяет выполнять код асинхронно (параллельно)
-from sqlalchemy import create_engine            # Подключение к БД (пустой)
+from sqlalchemy.ext.asyncio import create_async_engine            # Подключение к БД (пустой)
+from sqlalchemy import text  # Добавьте этот импорт
 
 from logger import logger
 from handlers import router
-from db import init_db, get_engine
+from db import init_db, get_session, engine
 
 async def set_commands(bot: Bot):
     commands = [
@@ -20,7 +22,9 @@ async def set_commands(bot: Bot):
 
 # Запуск бота
 async def main():
+    
     DATABASE_URL = os.getenv("DATABASE_URL")            # Подключение к PostgreSQL (URL из docker-compose)
+    logger.info(f"Используемый DATABASE_URL: {DATABASE_URL}")  # Должен начинаться с postgresql+asyncpg://
     if DATABASE_URL is None:       
         raise ValueError("Не найден DATABASE_URL в переменных окружения или .env файле")       # Нужно, чтобы URL точно был строкой
     init_db(DATABASE_URL)  # Инициализируем engine
@@ -30,11 +34,14 @@ async def main():
     if TOKEN is None:       
         raise ValueError("Не найден BOT_TOKEN в переменных окружения или .env файле")       # Нужно, чтобы токен точно был строкой
     
-    engine = get_engine()
-    
-    with engine.connect() as conn:                                              # Просто проверяем подключение
-        logger.info("Бот подключился к PostgreSQL!")
-    logger.info("Запуск бота...")
+    # Проверка подключения к БД
+    try:
+        async with get_session() as session:
+            await session.execute(text("SELECT 1"))  # Асинхронная проверка
+            logger.info("Успешное подключение к PostgreSQL!")
+    except Exception as e:
+        logger.error(f"Ошибка подключения к БД: {e}")
+        raise
     
     bot = Bot(token=TOKEN)          # Создание самого бота
     dp = Dispatcher()               # Создание диспетчера обработки сообщений
@@ -44,7 +51,9 @@ async def main():
     try:
         await dp.start_polling(bot)     # Бесконечно слушает сервера Телеграмма, чтобы отреагировать на сообщения
     finally:
-        engine.dispose()  # Закрываем все соединения при остановке бота
+        if engine:
+            await engine.dispose()  # Асинхронное закрытие соединений
+        logger.info("Бот остановлен, соединения закрыты")
 
 
 if __name__ == '__main__':          # Запускается только в том случае, если данный файл запускаетс непосредственно

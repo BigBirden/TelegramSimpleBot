@@ -5,12 +5,12 @@ import random                                           # Для поговор�
 from aiogram.fsm.state import State, StatesGroup        # Импорт состояний для рандомизатора
 from aiogram.fsm.context import FSMContext
 import asyncio                                          # Позволяет выполнять код асинхронно (параллельно)
-from sqlalchemy import text  # Добавьте этот импорт
+from sqlalchemy import text
 
 
 from func import load_data, load_jokes, randomizing, validate_number       # Функции загрузки данных и рандомизации
 import keyboards as kb                                                     # Reply-Клавиатуры и Inline-клавиатуры
-from db import get_engine
+from db import get_session
 
 facts = load_data('data/facts.txt')                 # Загрузка данных
 thinks = load_data('data/thinks.txt')
@@ -49,10 +49,8 @@ async def send_help(message: types.Message):
 @router.message(Command('base'))
 async def dbcheck(message: types.Message):
     try:
-        engine = get_engine()
-        # Пробуем установить подключение
-        with engine.connect() as conn:
-            conn.execute(text("SELECT 1"))
+        async with get_session() as session:
+            await session.execute(text("SELECT 1"))
             # Если подключение успешно, выполняем дальнейшие операции
             await message.answer("Успешное подключение к базе данных")
             
