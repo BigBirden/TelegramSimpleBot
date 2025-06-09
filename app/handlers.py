@@ -5,10 +5,12 @@ import random                                           # Для поговор�
 from aiogram.fsm.state import State, StatesGroup        # Импорт состояний для рандомизатора
 from aiogram.fsm.context import FSMContext
 import asyncio                                          # Позволяет выполнять код асинхронно (параллельно)
+from sqlalchemy import text  # Добавьте этот импорт
 
 
 from func import load_data, load_jokes, randomizing, validate_number       # Функции загрузки данных и рандомизации
 import keyboards as kb                                                     # Reply-Клавиатуры и Inline-клавиатуры
+from db import get_engine
 
 facts = load_data('data/facts.txt')                 # Загрузка данных
 thinks = load_data('data/thinks.txt')
@@ -24,38 +26,6 @@ router = Router()                                   # Объявляем роу�
 @router.message(CommandStart())
 async def send_welcome(message: types.Message):
     await message.reply("""Привет!\nЯ простейший бот-говорилка, по твоему выбору я могу тебе отправить интересный факт, поговорку или анекдот.\n\nВведи /help для просмотра списка команд.""", reply_markup=kb.main)
-
-# Вывод фактов
-@router.message(F.text.lower() == "факт")
-async def fact(message: types.Message):
-    if facts:  # Проверяем, что список не пустой
-        await message.answer("Факт №" + random.choice(facts))
-    else:
-        await message.answer("Факты кончились...")
-    
-
-# Вывод поговорок
-@router.message(F.text.lower() == "поговорка")
-async def think(message: types.Message):
-    if thinks:  # Проверяем, что список не пустой
-        await message.answer("Поговорка №" + random.choice(thinks))
-    else:
-        await message.answer("Поговорки кончились...")
-    
-    
-# Вывод анекдотов
-@router.message(F.text.lower() == "анекдот")
-async def joke(message: types.Message):
-    if jokes:  # Проверяем, что список не пустой
-        await message.answer(random.choice(jokes))
-    else:
-        await message.answer("Шутки кончились...")
-        
-# Каталог всяких плюшек
-@router.message(F.text.lower() ==  'каталог')
-async def catalog(message: types.Message):
-    await message.answer('Выберите категорию говорилки', reply_markup=kb.catalog)
-    
 
 # Обработчик команды /help
 @router.message(Command('help'))
@@ -77,16 +47,71 @@ async def send_help(message: types.Message):
 
 # Обработчик команды /base
 @router.message(Command('base'))
-async def dbcheck(message: types.Message, engine):
+async def dbcheck(message: types.Message):
     try:
+        engine = get_engine()
         # Пробуем установить подключение
         with engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
             # Если подключение успешно, выполняем дальнейшие операции
             await message.answer("Успешное подключение к базе данных")
             
     except Exception as e:
         # Если возникла ошибка подключения
         await message.answer(f"Ошибка подключения к базе данных: {str(e)}")
+        
+# Молитва
+@router.message(Command('pray'))
+async def pray(message: types.Message):
+    phrases = [                                                     # Список возможных фраз
+        "Господь услышал ваши молитвы.",
+        "Вы поставили свечку в церкви.",
+        "Священник в восторге."
+    ]
+    photos = [
+        "picts/church.jpg",
+        "picts/church1.jpg",
+        "picts/church2.jpg"
+    ]
+    random_phrase = random.choice(phrases)                      # Выбираем случайную фразу
+    random_number = random.randint(1, 100)                      # Генерируем случайное число от 1 до 100
+    photo_path = random.choice(photos)                          # Выбираем фото
+    captionL = (
+        f"{random_phrase}\n\n"
+        f"Ваш навык 'Религия' повышен на: {random_number}!"
+    )
+    await message.answer_photo(FSInputFile(photo_path), 
+                               caption=captionL)
+
+# Вывод фактов
+@router.message(F.text.lower() == "факт")
+async def fact(message: types.Message):
+    if facts:  # Проверяем, что список не пустой
+        await message.answer("Факт №" + random.choice(facts))
+    else:
+        await message.answer("Факты кончились...")
+    
+
+# Вывод поговорок
+@router.message(F.text.lower() == "поговорка")
+async def think(message: types.Message):
+    if thinks:  # Проверяем, что список не пустой
+        await message.answer("Поговорка №" + random.choice(thinks))
+    else:
+        await message.answer("Поговорки кончились...")
+    
+# Вывод анекдотов
+@router.message(F.text.lower() == "анекдот")
+async def joke(message: types.Message):
+    if jokes:  # Проверяем, что список не пустой
+        await message.answer(random.choice(jokes))
+    else:
+        await message.answer("Шутки кончились...")
+        
+# Каталог всяких плюшек
+@router.message(F.text.lower() ==  'каталог')
+async def catalog(message: types.Message):
+    await message.answer('Выберите категорию говорилки', reply_markup=kb.catalog)
     
 # Запуск рандомизации
 @router.callback_query(F.data == 'rand')
@@ -168,29 +193,6 @@ async def sbeu(message: types.Message):
     await message.answer_photo(FSInputFile(photo_path), 
                                caption=captionL,
                                parse_mode="MarkdownV2")
-    
-# Молитва
-@router.message(Command('pray'))
-async def pray(message: types.Message):
-    phrases = [                                                     # Список возможных фраз
-        "Господь услышал ваши молитвы.",
-        "Вы поставили свечку в церкви.",
-        "Священник в восторге."
-    ]
-    photos = [
-        "picts/church.jpg",
-        "picts/church1.jpg",
-        "picts/church2.jpg"
-    ]
-    random_phrase = random.choice(phrases)                      # Выбираем случайную фразу
-    random_number = random.randint(1, 100)                      # Генерируем случайное число от 1 до 100
-    photo_path = random.choice(photos)                          # Выбираем фото
-    captionL = (
-        f"{random_phrase}\n\n"
-        f"Ваш навык 'Религия' повышен на: {random_number}!"
-    )
-    await message.answer_photo(FSInputFile(photo_path), 
-                               caption=captionL)
     
 # Игра в пинг-понг
 @router.message(F.text.lower().in_(["ping", "пинг"]))

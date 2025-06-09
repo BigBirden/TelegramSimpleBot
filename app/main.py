@@ -1,4 +1,3 @@
-import logging                                  # Модуль для логирования (ведения журнала событий)
 from aiogram.types import BotCommand, BotCommandScopeDefault
 from aiogram import Bot, Dispatcher
 from dotenv import load_dotenv                  # Загружает переменные окружения (в данном случае токен бота)
@@ -6,7 +5,9 @@ import os                                       # Позволяет работ�
 import asyncio                                  # Позволяет выполнять код асинхронно (параллельно)
 from sqlalchemy import create_engine            # Подключение к БД (пустой)
 
+from logger import logger
 from handlers import router
+from db import init_db, get_engine
 
 async def set_commands(bot: Bot):
     commands = [
@@ -19,16 +20,17 @@ async def set_commands(bot: Bot):
 
 # Запуск бота
 async def main():
-    DATABASE_URL = "postgresql://postgres:postgres@db:5432/postgres"            # Подключение к PostgreSQL (URL из docker-compose)
-    engine = create_engine(DATABASE_URL)
+    DATABASE_URL = os.getenv("DATABASE_URL")            # Подключение к PostgreSQL (URL из docker-compose)
+    if DATABASE_URL is None:       
+        raise ValueError("Не найден DATABASE_URL в переменных окружения или .env файле")       # Нужно, чтобы URL точно был строкой
+    init_db(DATABASE_URL)  # Инициализируем engine
     
     load_dotenv()                       # Получает все переменные из файла .env
     TOKEN = os.getenv("BOT_TOKEN")      # Получаем нужную переменную
     if TOKEN is None:       
         raise ValueError("Не найден BOT_TOKEN в переменных окружения или .env файле")       # Нужно, чтобы токен точно был строкой
-
-    logging.basicConfig(level=logging.INFO)     # Настройка логов
-    logger = logging.getLogger(__name__)
+    
+    engine = get_engine()
     
     with engine.connect() as conn:                                              # Просто проверяем подключение
         logger.info("Бот подключился к PostgreSQL!")
@@ -36,9 +38,6 @@ async def main():
     
     bot = Bot(token=TOKEN)          # Создание самого бота
     dp = Dispatcher()               # Создание диспетчера обработки сообщений
-    
-    # Передаём engine в хендлеры (чтобы они создавали новые подключения при запросах)
-    dp["engine"] = engine
     
     await set_commands(bot)  # Установка меню команд
     dp.include_router(router)       # Включаем роутер
