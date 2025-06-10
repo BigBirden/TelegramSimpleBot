@@ -1,5 +1,7 @@
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from contextlib import asynccontextmanager
+from sqlalchemy.ext.asyncio import AsyncAttrs
+from sqlalchemy.orm import DeclarativeBase
 
 engine = None
 AsyncSessionLocal = None
@@ -23,3 +25,7 @@ async def get_session():
                 await session.close()               # Всегда закрываем
     else:
         raise Exception("AsyncSessionLocal is None")
+    
+
+class Base(AsyncAttrs, DeclarativeBase):
+    pass
