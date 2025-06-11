@@ -8,7 +8,13 @@ import os
 
 from alembic import context
 
-from app.models import Base  # Импортируйте ваши модели
+import sys
+from os.path import abspath, dirname
+
+# Добавляем /app в путь поиска модулей
+sys.path.insert(0, dirname(abspath(__file__)))
+
+from models import Base  # Импортируйте ваши модели
 
 config = context.config
 

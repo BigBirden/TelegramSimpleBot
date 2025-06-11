@@ -5,11 +5,13 @@ import random                                           # Для поговор�
 from aiogram.fsm.state import State, StatesGroup        # Импорт состояний для рандомизатора
 from aiogram.fsm.context import FSMContext
 import asyncio                                          # Позволяет выполнять код асинхронно (параллельно)
+
 from sqlalchemy import text
 
 from func import load_data, load_jokes, randomizing, validate_number       # Функции загрузки данных и рандомизации
 import keyboards as kb                                                     # Reply-Клавиатуры и Inline-клавиатуры
 from db import get_session
+from middlewares import MessageSaverMiddleware
 
 facts = load_data('data/facts.txt')                 # Загрузка данных
 thinks = load_data('data/thinks.txt')
@@ -20,11 +22,16 @@ class Randomizer(StatesGroup):                      # Класс для сост
     max = State()
     
 router = Router()                                   # Объявляем роутер, который будет диспетчером
+router.message.middleware(MessageSaverMiddleware())
 
 # Обработчик команды /start
 @router.message(CommandStart())
 async def send_welcome(message: types.Message):
-    await message.reply("""Привет!\nЯ простейший бот-говорилка, по твоему выбору я могу тебе отправить интересный факт, поговорку или анекдот.\n\nВведи /help для просмотра списка команд.""", reply_markup=kb.main)
+    # Отправляем приветственное сообщение
+    await message.reply(
+        """Привет!\nЯ простейший бот-говорилка, по твоему выбору я могу тебе отправить интересный факт, поговорку или анекдот.\n\nВведи /help для просмотра списка команд.""",
+        reply_markup=kb.main
+    )
 
 # Обработчик команды /help
 @router.message(Command('help'))
@@ -56,7 +63,7 @@ async def dbcheck(message: types.Message):
     except Exception as e:
         # Если возникла ошибка подключения
         await message.answer(f"Ошибка подключения к базе данных: {str(e)}")
-        
+
 # Обработчик команды /pray (Молитва)
 @router.message(Command('pray'))
 async def pray(message: types.Message):
@@ -80,12 +87,34 @@ async def pray(message: types.Message):
     await message.answer_photo(FSInputFile(photo_path), 
                                caption=captionL)
 
+# Получение id пользователя
+@router.message(Command('myid'))
+async def show_my_id(message: types.Message):
+    if message.from_user:
+        user_id = message.from_user.id
+        await message.answer(f"Ваш Telegram ID: {user_id}")
+        
+    else:
+        raise Exception("Ошибка при получении ID")
+
+# Получение id чата
+@router.message(Command('chatid'))
+async def get_chat_id(message: types.Message):
+    chat_id = message.chat.id
+    await message.answer(f"ID этого чата: {chat_id}")
+    
+# Получение id сообщения
+@router.message(Command('msgid'))
+async def get_message_id(message: types.Message):
+    msg_id = message.message_id
+    await message.answer(f"ID этого сообщения: {msg_id}")
+
 # Обработчик команды /users (Вывод всех пользователей в БД)
 @router.message(Command('users'))
 async def list_users(message: types.Message):
     try:
         async with get_session() as session:
-            result = await session.execute(text("SELECT id, username FROM users"))
+            result = await session.execute(text("SELECT telegram_id, username FROM users"))
             users = result.fetchall()
             if not users:
                 await message.answer("Пользователей в базе нет.")
@@ -100,43 +129,35 @@ async def list_users(message: types.Message):
 # Обработчик команды /re_chat
 @router.message(Command('re_chat'))
 async def re_chat(message: types.Message):
-    if message.text:
-        args = message.text.split()                                 # Проверяем аргумент после команды
-    else:
-        await message.answer("Пожалуйста, укажите команду корректно. Например: /re_chat 1")
-        return
-    
-    if len(args) < 2:
-        await message.answer("Пожалуйста, укажите ID пользователя. Например: /re_chat 1")
-        return
-    
-    user_id_str = args[1]
-    
     try:
-        user_id = int(user_id_str)
+        if message.from_user:
+            user_id = message.from_user.id 
+        else:
+            raise Exception("message.from_user пуст!")
     except ValueError:
         await message.answer("ID должен быть числом.")
         return
-    
-    # Выполняем запрос к базе
+    except Exception:
+        await message.answer("Сообщение пусто.")
+        return
+
     try:
         async with get_session() as session:
             result = await session.execute(
-                text("SELECT text, created_at FROM messages WHERE user_id = :uid ORDER BY created_at DESC"),
+                text(
+                    "SELECT m.text, m.created_at FROM messages m "
+                    "JOIN dialogs d ON m.dialog_id = d.id "
+                    "WHERE d.user_id = :uid "
+                    "ORDER BY m.created_at DESC"
+                ),
                 {'uid': user_id}
             )
             messages = result.fetchall()
             if not messages:
                 await message.answer("У этого пользователя сообщений нет.")
                 return
-            
-            # Отправляем сообщения в порядке от старого к новому
-            for msg in reversed(messages):
-                text_msg = msg[0]
-                created = msg[1]
-                # Форматируем дату
+            for text_msg, created in messages:
                 dt_str = created.strftime("%d.%m.%Y %H:%M")
-                # Отправляем красиво
                 await message.answer(f"🕒 {dt_str}\n📝 {text_msg}")
     except Exception as e:
         await message.answer(f"Ошибка: {str(e)}")
@@ -272,3 +293,8 @@ async def luck(message: types.Message):
     )
     await message.answer_photo(FSInputFile(photo_path), 
                                caption=captionL)
+    
+@router.message(F.text)
+async def handle_all_text_messages(message: types.Message):
+    # Тут ваш код, например, вызов middleware или логика
+    pass
