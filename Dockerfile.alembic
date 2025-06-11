@@ -14,4 +14,7 @@ COPY app/db.py ./app/
 COPY app/models.py ./app/
 COPY app/alembic ./app/alembic
 
+# Добавляем текущую директорию в PYTHONPATH
+ENV PYTHONPATH=/app
+
 CMD ["sh", "-c", "alembic upgrade head && tail -f /dev/null"]
