@@ -7,7 +7,6 @@ from aiogram.fsm.context import FSMContext
 import asyncio                                          # Позволяет выполнять код асинхронно (параллельно)
 from sqlalchemy import text
 
-
 from func import load_data, load_jokes, randomizing, validate_number       # Функции загрузки данных и рандомизации
 import keyboards as kb                                                     # Reply-Клавиатуры и Inline-клавиатуры
 from db import get_session
@@ -58,7 +57,7 @@ async def dbcheck(message: types.Message):
         # Если возникла ошибка подключения
         await message.answer(f"Ошибка подключения к базе данных: {str(e)}")
         
-# Молитва
+# Обработчик команды /pray (Молитва)
 @router.message(Command('pray'))
 async def pray(message: types.Message):
     phrases = [                                                     # Список возможных фраз
@@ -80,6 +79,67 @@ async def pray(message: types.Message):
     )
     await message.answer_photo(FSInputFile(photo_path), 
                                caption=captionL)
+
+# Обработчик команды /users (Вывод всех пользователей в БД)
+@router.message(Command('users'))
+async def list_users(message: types.Message):
+    try:
+        async with get_session() as session:
+            result = await session.execute(text("SELECT id, username FROM users"))
+            users = result.fetchall()
+            if not users:
+                await message.answer("Пользователей в базе нет.")
+                return
+            reply = "Пользователи:\n"
+            for user in users:
+                reply += f"ID: {user[0]}, Имя: {user[1]}\n"
+            await message.answer(reply)
+    except Exception as e:
+        await message.answer(f"Ошибка при получении пользователей: {str(e)}")
+
+# Обработчик команды /re_chat
+@router.message(Command('re_chat'))
+async def re_chat(message: types.Message):
+    if message.text:
+        args = message.text.split()                                 # Проверяем аргумент после команды
+    else:
+        await message.answer("Пожалуйста, укажите команду корректно. Например: /re_chat 1")
+        return
+    
+    if len(args) < 2:
+        await message.answer("Пожалуйста, укажите ID пользователя. Например: /re_chat 1")
+        return
+    
+    user_id_str = args[1]
+    
+    try:
+        user_id = int(user_id_str)
+    except ValueError:
+        await message.answer("ID должен быть числом.")
+        return
+    
+    # Выполняем запрос к базе
+    try:
+        async with get_session() as session:
+            result = await session.execute(
+                text("SELECT text, created_at FROM messages WHERE user_id = :uid ORDER BY created_at DESC"),
+                {'uid': user_id}
+            )
+            messages = result.fetchall()
+            if not messages:
+                await message.answer("У этого пользователя сообщений нет.")
+                return
+            
+            # Отправляем сообщения в порядке от старого к новому
+            for msg in reversed(messages):
+                text_msg = msg[0]
+                created = msg[1]
+                # Форматируем дату
+                dt_str = created.strftime("%d.%m.%Y %H:%M")
+                # Отправляем красиво
+                await message.answer(f"🕒 {dt_str}\n📝 {text_msg}")
+    except Exception as e:
+        await message.answer(f"Ошибка: {str(e)}")
 
 # Вывод фактов
 @router.message(F.text.lower() == "факт")

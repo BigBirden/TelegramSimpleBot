@@ -16,6 +16,8 @@ async def set_commands(bot: Bot):
         BotCommand(command="start", description="Запустить бота"),
         BotCommand(command="help", description="Помощь"),
         BotCommand(command="base", description="Проверка БД"),
+        BotCommand(command="users", description="Вывод пользователей в БД"),
+        BotCommand(command="re_chat", description="Вывод последних сообщений в БД от указанного пользователя. Как аргумент принимает ID пользователя."),
         BotCommand(command="pray", description="Молитва")
     ]
     await bot.set_my_commands(commands, scope=BotCommandScopeDefault())
