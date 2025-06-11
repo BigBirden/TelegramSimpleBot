@@ -1,0 +1,17 @@
+# Используем тот же базовый образ, что и для основного бота
+FROM python
+
+# Жёстко задаём рабочую директорию /tgbot
+WORKDIR /tgbot
+
+# Устанавливаем зависимости
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt alembic asyncpg
+
+# Копируем необходимые файлы
+COPY alembic.ini .
+COPY app/db.py ./app/
+COPY app/models.py ./app/
+COPY app/alembic ./app/alembic
+
+CMD ["sh", "-c", "alembic upgrade head && tail -f /dev/null"]

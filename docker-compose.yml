@@ -1,15 +1,29 @@
 services:
   bot:
-    build: .
+    build: 
+      dockerfile: Dockerfile
+      context: .
     env_file:
       - .env
     environment:
-      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      - DATABASE_URL=${DATABASE_URL}
       - BOT_TOKEN=${BOT_TOKEN}
     depends_on:
       - db
     volumes:
-      - ./app:/app
+      #- ./app:/app
+      - ./app/alembic/versions:/app/alembic/versions
+      - ./app/alembic/env.py:/app/alembic/env.py
+      - ./app/alembic/script.py.mako:/app/alembic/script.py.mako
+      - ./app/data:/app/data
+      - ./app/picts:/app/picts
+      - ./app/db.py:/app/db.py
+      - ./app/func.py:/app/func.py
+      - ./app/handlers.py:/app/handlers.py
+      - ./app/keyboards.py:/app/keyboards.py
+      - ./app/logger.py:/app/logger.py
+      - ./app/main.py:/app/main.py
+      - ./app/models.py:/app/models.py
 
   db:
     image: postgres:13-alpine           # Используем официальный образ PostgreSQL
@@ -22,5 +36,21 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
+  alembic:
+    build:
+      dockerfile: Dockerfile.alembic
+      context: .
+    volumes:
+      - ./app/alembic/versions:/tgbot/app/alembic/versions                # Монтируем алембик без кэша
+      - ./app/alembic/env.py:/tgbot/app/alembic/env.py                    # !Внимание! - в папке versions переносится pycache
+      - ./app/alembic/script.py.mako:/tgbot/app/alembic/script.py.mako
+      - ./alembic.ini:/tgbot/alembic.ini                                  # аналогично для конфига
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=${DATABASE_URL}
+    depends_on:
+      - db
+    
 volumes:
   postgres_data:

@@ -16,6 +16,8 @@ async def set_commands(bot: Bot):
         BotCommand(command="start", description="Запустить бота"),
         BotCommand(command="help", description="Помощь"),
         BotCommand(command="base", description="Проверка БД"),
+        BotCommand(command="users", description="Вывод пользователей в БД"),
+        BotCommand(command="re_chat", description="Вывод последних сообщений в БД от указанного пользователя. Как аргумент принимает ID пользователя."),
         BotCommand(command="pray", description="Молитва")
     ]
     await bot.set_my_commands(commands, scope=BotCommandScopeDefault())
@@ -23,13 +25,13 @@ async def set_commands(bot: Bot):
 # Запуск бота
 async def main():
     
-    DATABASE_URL = os.getenv("DATABASE_URL")            # Подключение к PostgreSQL (URL из docker-compose)
+    load_dotenv()                                               # Получает все переменные из файла .env
+    DATABASE_URL = os.getenv("DATABASE_URL")                   # Подключение к PostgreSQL (URL из docker-compose)
     logger.info(f"Используемый DATABASE_URL: {DATABASE_URL}")  # Должен начинаться с postgresql+asyncpg://
     if DATABASE_URL is None:       
         raise ValueError("Не найден DATABASE_URL в переменных окружения или .env файле")       # Нужно, чтобы URL точно был строкой
     init_db(DATABASE_URL)  # Инициализируем engine
     
-    load_dotenv()                       # Получает все переменные из файла .env
     TOKEN = os.getenv("BOT_TOKEN")      # Получаем нужную переменную
     if TOKEN is None:       
         raise ValueError("Не найден BOT_TOKEN в переменных окружения или .env файле")       # Нужно, чтобы токен точно был строкой
