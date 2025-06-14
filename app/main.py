@@ -15,6 +15,7 @@ async def set_commands(bot: Bot):
     commands = [
         BotCommand(command="start", description="Запустить бота"),
         BotCommand(command="help", description="Помощь"),
+        BotCommand(command="vk_auth", description="Авторизация через ВК"),
         BotCommand(command="base", description="Проверка БД"),
         BotCommand(command="users", description="Вывод пользователей в БД"),
         BotCommand(command="re_chat", description="Вывод последних сообщений"),

@@ -3,7 +3,6 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import String, Integer, Enum, ForeignKey, DateTime, BigInteger
 from enum import Enum as PyEnum
 from datetime import datetime
-
 from db import Base
 
 class UserRole(PyEnum):
@@ -21,6 +20,7 @@ class User(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     dialog = relationship("Dialog", back_populates="user", uselist=False)
+    vk_tokens = relationship("VKToken", back_populates="user")
 
 class Dialog(Base):
     __tablename__ = "dialogs"
@@ -39,3 +39,12 @@ class Message(Base):
     dialog_id: Mapped[int] = mapped_column(ForeignKey("dialogs.id"))
 
     dialog = relationship("Dialog", back_populates="messages")
+    
+class VKToken(Base):
+    __tablename__ = "vk_tokens"
+    
+    id: Mapped[int] = mapped_column(BigInteger, ForeignKey("users.telegram_id"), primary_key=True)
+    encrypted_token: Mapped[bytes]  # Шифрованные данные
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)  # Когда создан
+    
+    user = relationship("User", back_populates="vk_tokens")

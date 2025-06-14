@@ -1,5 +1,15 @@
 import random                                           # Для рандомизации
 from typing import Union                                # Для валидации
+import secrets
+import hashlib
+import base64
+
+def generate_pkce_pair():
+    verifier = secrets.token_urlsafe(64)
+    challenge = base64.urlsafe_b64encode(
+        hashlib.sha256(verifier.encode()).digest()
+    ).decode().rstrip("=")
+    return verifier, challenge
 
 # Загружаем данные из файлов
 def load_data(filename):
