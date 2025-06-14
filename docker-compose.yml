@@ -45,7 +45,7 @@ services:
       - ./app/alembic/versions:/app/alembic/versions                # Монтируем алембик без кэша
       - ./app/alembic/env.py:/app/alembic/env.py                    # !Внимание! - в папке versions переносится pycache
       - ./app/alembic/script.py.mako:/app/alembic/script.py.mako
-      - ./alembic.ini:/app/alembic.ini                                  # аналогично для конфига
+      - ./alembic.ini:/alembic.ini                                  # аналогично для конфига
       - ./app/models.py:/app/models.py
       - ./app/db.py:/app/db.py
     env_file:
@@ -55,5 +55,35 @@ services:
     depends_on:
       - db
     
+  redis:
+    image: redis:6-alpine
+    volumes:
+      - redis_data:/data
+    restart: always
+
+  server:
+    build: 
+      dockerfile: Dockerfile.server
+      context: .
+    env_file:
+      - .env
+    ports:
+      - "80:8000"  # Хост:80 → Контейнер:8000
+    volumes:
+      # Монтируем только нужные файлы
+      - ./server/app.py:/app/server/app.py:cached
+      - ./server/success.html:/app/server/success.html:cached
+      - ./app/db.py:/app/app/db.py:cached
+      - ./app/models.py:/app/app/models.py:cached
+    environment:
+      - VK_APP_ID=${VK_APP_ID}
+      - VK_CALLBACK_URL=${VK_CALLBACK_URL}
+      - DATABASE_URL=${DATABASE_URL}
+      - FERNET_KEY=${FERNET_KEY}
+    depends_on:
+      - redis
+      - db
+
 volumes:
   postgres_data:
+  redis_data:

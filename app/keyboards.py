@@ -18,3 +18,9 @@ again = InlineKeyboardMarkup(
         [InlineKeyboardButton(text="🎲 Еще раз", callback_data="repeat_random")]
     ]
 )
+
+# Клава для VKID
+def get_auth_keyboard(auth_url: str) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🚪 Войти через VK", url=auth_url)]
+    ])

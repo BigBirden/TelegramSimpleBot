@@ -1,9 +1,6 @@
 # Используем тот же базовый образ, что и для основного бота
 FROM python
 
-# Жёстко задаём рабочую директорию /tgbot
-WORKDIR /tgbot
-
 # Устанавливаем зависимости
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt alembic asyncpg

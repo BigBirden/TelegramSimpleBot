@@ -1,0 +1,20 @@
+FROM python
+
+WORKDIR /app
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt uvicorn
+
+# Копируем сервер
+COPY server/ ./server/
+# Копируем только нужные файлы из app
+COPY app/db.py ./app/
+COPY app/models.py ./app/
+
+# Создаем симлинк для совместимости импортов
+RUN ln -s /app/app /app/db
+
+# Добавляем оба пути в PYTHONPATH
+ENV PYTHONPATH="${PYTHONPATH}:/app:/app/app"
+
+CMD ["uvicorn", "server.app:app", "--host", "0.0.0.0", "--port", "8000"]
