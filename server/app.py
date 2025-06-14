@@ -79,7 +79,6 @@ async def vk_callback(request: Request):
                     detail="VK не вернул access_token"
                 )
             
-            logger.info(f"Токен: {token_data["access_token"]}")
             try:
                 # Шифруем токен перед сохранением
                 encrypted_token = cipher.encrypt(token_data['access_token'].encode())
@@ -114,10 +113,9 @@ async def vk_callback(request: Request):
                     saved_token_obj = await session.get(VKToken, telegram_id)
                     if saved_token_obj and saved_token_obj.encrypted_token:
                         decrypted_token = cipher.decrypt(saved_token_obj.encrypted_token).decode()
-                        logger.info(f"Дешифрованный токен из БД: {decrypted_token}")
-                        # Можно дополнительно сравнить с исходным token_data['access_token']
                         if decrypted_token != token_data['access_token']:
                             logger.warning("Внимание! Дешифрованный токен не совпадает с исходным!")
+                            
             except Exception as e:
                 raise Exception(f"Не удалось записать токен в БД: {e}")
 
