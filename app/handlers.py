@@ -179,7 +179,7 @@ async def re_chat(message: types.Message):
 async def send_vk_auth_link(message: types.Message):
     client_id = os.getenv("VK_APP_ID")                              # ID вашего Standalone-приложения
     redirect_uri = os.getenv("VK_CALLBACK_URL")                     # URL для callback
-    scope = "friends,photos,offline"                                # Запрашиваемые права
+    scope = "email phone"                                # Запрашиваемые права
     
     if not client_id:
         await message.answer("Ошибка: не настроен VK_APP_ID")
