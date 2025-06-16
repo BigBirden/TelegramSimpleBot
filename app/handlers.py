@@ -1,4 +1,3 @@
-import secrets
 from aiogram import types, F, Router                    # Непосредственно создание ботов
 from aiogram.filters import Command, CommandStart       # Фильтр для обработки команд
 from aiogram.types import CallbackQuery, FSInputFile
@@ -6,9 +5,6 @@ import random                                           # Для поговор�
 from aiogram.fsm.state import State, StatesGroup        # Импорт состояний для рандомизатора
 from aiogram.fsm.context import FSMContext
 import asyncio                                          # Позволяет выполнять код асинхронно (параллельно)
-import os
-from urllib.parse import quote                          # Для vk_auth
-import redis                                            # Для передачи state и code_challenge
 
 from sqlalchemy import text
 
@@ -17,13 +13,7 @@ import keyboards as kb                                                     # Rep
 from db import get_session
 from middlewares import MessageSaverMiddleware
 
-# Подключение к Redis
-redis_client = redis.Redis(
-    host="redis",               # Имя сервиса в docker-compose
-    port=6379,
-    db=0,
-    decode_responses=True       # Чтобы получать строки вместо bytes
-)
+FASTAPI_BASE_URL = "http://localhost:8000/vk/login"
 
 facts = load_data('data/facts.txt')                 # Загрузка данных
 thinks = load_data('data/thinks.txt')
@@ -177,49 +167,16 @@ async def re_chat(message: types.Message):
 # Обработчик команды /vk_auth
 @router.message(Command("vk_auth"))
 async def send_vk_auth_link(message: types.Message):
-    client_id = os.getenv("VK_APP_ID")                              # ID вашего Standalone-приложения
-    redirect_uri = os.getenv("VK_CALLBACK_URL")                     # URL для callback
-    scope = "email phone"                                # Запрашиваемые права
-    
-    if not client_id:
-        await message.answer("Ошибка: не настроен VK_APP_ID")
-        return
-    if not redirect_uri:
-        await message.answer("Ошибка: не настроен VK_CALLBACK_URL")
-        return
-    
-    state = secrets.token_urlsafe(16)                               # Создаем 
-    code_verifier, code_challenge = generate_pkce_pair()
-    
-    redis_key = f"vk_auth:{state}"
-    redis_client.hset(
-        redis_key,                                                  # Сохраняем в Redis (ключ: "vk_auth:{state}")
-        mapping={
-            "code_verifier": code_verifier,
-            "telegram_id": str(message.from_user.id) # type: ignore
-        }
-    )
-    redis_client.expire(redis_key, 600)  # Удалить через 10 минут
-    
-    auth_url = (
-        f"https://id.vk.com/authorize?"
-        f"response_type=code&"
-        f"client_id={client_id}&"
-        f"redirect_uri={quote(redirect_uri)}&"
-        f"scope={quote(scope)}&"
-        f"code_challenge={code_challenge}&"
-        f"code_challenge_method=S256&"
-        f"state={state}"
-    )
-    
+    if message.from_user:
+        telegram_user_id = message.from_user.id
+    # Добавляем telegram_user_id как параметр в URL
+    auth_url = f"{FASTAPI_BASE_URL}?telegram_user_id={telegram_user_id}"
     
     # Отправляем сообщение с ссылкой
     await message.answer(
         "<b>🔐 Авторизация VK</b>\n\n"
         "Вы можете авторизоваться через VK!\n"
-        "Нажмите кнопку ниже чтобы продолжить:",
-        parse_mode="HTML",
-        reply_markup=kb.get_auth_keyboard(auth_url)
+        f"Нажмите кнопку ниже чтобы продолжить: {auth_url}"
     )
 
 # Вывод фактов
