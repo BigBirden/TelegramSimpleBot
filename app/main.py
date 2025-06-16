@@ -27,6 +27,7 @@ async def set_commands(bot: Bot):
 async def main():
     
     load_dotenv()                                               # Получает все переменные из файла .env
+    
     DATABASE_URL = os.getenv("DATABASE_URL")                   # Подключение к PostgreSQL (URL из docker-compose)
     logger.info(f"Используемый DATABASE_URL: {DATABASE_URL}")  # Должен начинаться с postgresql+asyncpg://
     if DATABASE_URL is None:       
